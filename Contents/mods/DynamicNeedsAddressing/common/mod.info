@@ -1,0 +1,12 @@
+name=Dynamic Needs Addressing (SimpleStatus extension)
+id=DynamicNeedsAddressing
+author=pimatstudio
+modversion=0.1a
+poster=preview.png
+icon=icon.png
+require=\simpleStatusFixed
+description= Address your needs like a champ!
+description= <LINE><LINE>
+description= <RGB:0,1,0> Keeping track of your needs and conveniently take appropriate action to address them!
+description= <LINE><LINE>
+description= <RGB:0,1,1> USAGE: Left-click on a chosen bar of SimpleStatus mod and choose to take your preffered action.

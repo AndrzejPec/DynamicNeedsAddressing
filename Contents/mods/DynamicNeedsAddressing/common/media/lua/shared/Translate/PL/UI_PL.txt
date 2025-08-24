@@ -1,0 +1,13 @@
+UI_PL = {
+    UI_WTJ_assignCategory = "Przyporządkuj kategorię",
+    UI_WTJ_changeCategoryFor = "Zmiana kategorii dla przedmiotu:",
+    UI_WTJ_savedCategory = "Zapamiętana kategoria: %s",
+    UI_WTJ_defaultCategory = "Domyślna kategoria: %s",
+    UI_WTJ_resetToDefault = "Przywróć domyślną kategorię",
+    UI_WTJ_apply = "Zatwierdź",
+    UI_WTJ_cancel = "Anuluj",
+    UI_WTJ_warningTitle1 = "UWAGA! Zastosowane zmiany nie są natychmiastowe.",
+    UI_WTJ_warningTitle2 = "Musisz przeładować grę, aby dostrzec zmiany.",
+    UI_WTJ_warningCheckbox = "Rozumiem, nie pokazuj więcej tego komunikatu.",
+    UI_WTJ_customCategoryHint = "Lub wpisz nazwę nowej kategorii powyżej",
+}

@@ -1,0 +1,14 @@
+UI_EN = {
+    UI_WTJ_assignCategory = "Assign Category",
+    UI_WTJ_changeCategoryFor = "Change display category for:",
+    UI_WTJ_savedCategory = "Saved category: %s",
+    UI_WTJ_defaultCategory = "Default category: %s",
+    UI_WTJ_resetToDefault = "Reset to default category",
+    UI_WTJ_apply = "Apply",
+    UI_WTJ_cancel = "Cancel",
+    UI_WTJ_warningTitle1 = "WARNING! The applied changes aren't immediate.",
+    UI_WTJ_warningTitle2 = "Category change: You need to reload the save for them to take effect.",
+    UI_WTJ_warningTitle3 = "New category: You need to REBOOT the game for them to take effect.",
+    UI_WTJ_warningCheckbox = "I understand, do not show this message again.",
+    UI_WTJ_customCategoryHint = "Or enter your own category above",
+}
