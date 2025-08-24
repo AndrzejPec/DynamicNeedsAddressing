@@ -50,7 +50,7 @@ function DNA.isEdible(item)
     return ok
 end
 
-local function collectEdiblesFrom(inv)
+function DNA.collectEdiblesFrom(inv)
     local out = ArrayList.new()
 
     if inv and inv.getAllEvalRecurse then
@@ -225,7 +225,7 @@ function DNA.openEdiblesMenu(playerObj, x, y)
     if not playerObj then return end
 
     local inv = playerObj:getInventory()
-    local foods = collectEdiblesFrom(inv)
+    local foods = DNA.collectEdiblesFrom(inv)
     local px = playerObj:getPlayerNum() or 0
 
     local mx = (x or getMouseX())
@@ -256,7 +256,7 @@ function Debug_PrintAllEdibles(playerObj)
     playerObj = playerObj or getPlayer()
     if not playerObj then print("[DynamicNeedsAddressing] [Edibles] No player") return end
     local inv = playerObj:getInventory()
-    local foods = collectEdiblesFrom(inv)
+    local foods = DNA.collectEdiblesFrom(inv)
     print(string.format("[Edibles] found %d edible items", foods:size()))
     for i = 0, foods:size() - 1 do
         local it = foods:get(i)
