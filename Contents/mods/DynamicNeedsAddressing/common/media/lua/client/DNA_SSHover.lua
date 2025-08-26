@@ -1,7 +1,7 @@
 if _G.__SSHover_AddToUIPatched then return end
 _G.__SSHover_AddToUIPatched = true
 
-print("[SSHover] start: tryb 'per-instancja' przez hook ISPanel:addToUIManager()")
+DNA.msg("[SSHover] start: tryb 'per-instancja' przez hook ISPanel:addToUIManager()")
 
 ----------------------------------------------------------------------
 -- 1) Helper do wykrywania H-bara (poziomy) – jak wcześniej
@@ -49,13 +49,13 @@ local function patchInstance(panel)
         if idx and self.barInfo and self.barInfo[idx] then
             local name  = tostring(self.barInfo[idx][6] or "")
             local title = tostring(self.barInfo[idx][1] or "")
-            print(string.format("[SSHover] CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
+            DNA.msg(string.format("[SSHover] CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
             if name == "hunger" then
                 local d = rawget(_G, "DNA")
                 if d and type(d.openEdiblesMenu) == "function" then
                     d.openEdiblesMenu(getPlayer(), getMouseX() + 5, getMouseY() - 5)
                 else
-                    print("[SSHover] DNA.openEdiblesMenu is not available")
+                    DNA.msg("[SSHover] DNA.openEdiblesMenu is not available")
                 end
             end
             
@@ -66,7 +66,7 @@ local function patchInstance(panel)
     end
     
     panel.__sshover_patched = true
-    print("[SSHover] spatchowano instancję SSBar przez addToUIManager().")
+    DNA.msg("[SSHover] spatchowano instancję SSBar przez addToUIManager().")
     return true
 end
 
@@ -82,7 +82,7 @@ function ISPanel:addToUIManager(...)
     return _orig_addToUI(self, ...)
 end 
 
-print("[SSHover] ISPanel:addToUIManager zhookowany – będę patchować SSBar per-instancja.")
+DNA.msg("[SSHover] ISPanel:addToUIManager zhookowany – będę patchować SSBar per-instancja.")
 
 ----------------------------------------------------------------------
 -- 5) Na wypadek, że SSBar już był w UI zanim włączył się nasz mod:

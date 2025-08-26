@@ -2,12 +2,12 @@
 
 -- -- Żeby nie ładować drugi raz przy hotloadach
 -- if _G.__SSHover_Loaded then
---     print("[SSHover] już załadowany – pomijam.")
+--     DNA.msg("[SSHover] już załadowany – pomijam.")
 --     return
 -- end
 -- _G.__SSHover_Loaded = true
 
--- print("[SSHover] Start – instaluję helper i hook na klik LPM dla SSBar (poziome paski).")
+-- DNA.msg("[SSHover] Start – instaluję helper i hook na klik LPM dla SSBar (poziome paski).")
 
 -- ----------------------------------------------------------------------
 -- -- KROK 1: helper – znajdź który POZIOMY pasek jest pod myszą
@@ -37,7 +37,7 @@
 --     return nil
 -- end
 
--- print("[SSHover] KROK 1: helper załadowany.")
+-- DNA.msg("[SSHover] KROK 1: helper załadowany.")
 
 -- ----------------------------------------------------------------------
 -- -- KROK 2: hook na ISPanel:onMouseUp – tylko dla paneli typu SSBar
@@ -54,15 +54,15 @@
 --             if idx and self.barInfo and self.barInfo[idx] then
 --                 local title = tostring(self.barInfo[idx][1] or "")
 --                 local name  = tostring(self.barInfo[idx][6] or "")
---                 print(string.format("[SSHover] CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
+--                 DNA.msg(string.format("[SSHover] CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
 --             end
 --         end
 --         return _orig_onMouseUp(self, x, y)
 --     end
 
---     print("[SSHover] KROK 2: ISPanel:onMouseUp spatchowany dla SSBar (click-logger).")
+--     DNA.msg("[SSHover] KROK 2: ISPanel:onMouseUp spatchowany dla SSBar (click-logger).")
 -- else
---     print("[SSHover] KROK 2: patch już był aktywny.")
+--     DNA.msg("[SSHover] KROK 2: patch już był aktywny.")
 -- end
 
 -- ----------------------------------------------------------------------
@@ -87,7 +87,7 @@
 --                 self:drawTextWithShadow(title .. " : " .. value, mx - 5, my - (self.config.barWidth or 20) - 5)
 --                 if self.__lastHoverIdx ~= idx then
 --                     self.__lastHoverIdx = idx
---                     print(string.format("[SSHover] HOVER #%d  title=%s", idx, title))
+--                     DNA.msg(string.format("[SSHover] HOVER #%d  title=%s", idx, title))
 --                 end
 --             else
 --                 self.__lastHoverIdx = nil
@@ -95,10 +95,10 @@
 --         end
 --     end
 
---     print("[SSHover] KROK 3: tooltip hover (poziom) – WŁĄCZONY.")
+--     DNA.msg("[SSHover] KROK 3: tooltip hover (poziom) – WŁĄCZONY.")
 -- else
---     print("[SSHover] KROK 3: tooltip hover już był włączony.")
+--     DNA.msg("[SSHover] KROK 3: tooltip hover już był włączony.")
 -- end
 -- ]]
 
--- print("[SSHover] Gotowe. Klikaj LPM w poziome paski – w konsoli polecą name/title.")
+-- DNA.msg("[SSHover] Gotowe. Klikaj LPM w poziome paski – w konsoli polecą name/title.")

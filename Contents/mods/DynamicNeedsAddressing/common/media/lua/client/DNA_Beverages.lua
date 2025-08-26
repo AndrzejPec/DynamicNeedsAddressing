@@ -47,13 +47,13 @@ end
 function DNA.collectBeveragesFrom(inv)
     local out = DNA.findBeveragesInInventory(inv)
     local p = getPlayer()
-    if not p then print("[DNA] No player") return out end
+    if not p then DNA.msg("[DNA] No player") return out end
     local sq = p:getSquare()
-    if not sq then print("[DNA] No player square") return out end
+    if not sq then DNA.msg("[DNA] No player square") return out end
     local cell = getCell()
-    if not cell then print("[DNA] No cell") return out end
+    if not cell then DNA.msg("[DNA] No cell") return out end
     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    print(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
+    DNA.msg(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
     for dx=-1,1 do
         for dy=-1,1 do
             local gs = cell:getGridSquare(x+dx, y+dy, z)
@@ -92,18 +92,87 @@ function DNA.collectBeveragesFrom(inv)
             end
         end
     end
-    print(string.format("[DNA] Total collected beverages: %d", out:size()))
+    DNA.msg(string.format("[DNA] Total collected beverages: %d", out:size()))
     return out
 end
 
-function Debug_PrintBeverages()
+function DNA.isBeverageForNeed(it, needKey)
+    if not DNA.isBeverage(it) then return false end
+    local pts = DNA.needPoints and DNA.needPoints(it) or nil
+    if not pts then return false end
+    local v = pts[needKey] or 0
+    return v > 0
+end
+
+function DNA.findBeveragesForNeed(inv, needKey)
+    local all = DNA.findBeveragesInInventory(inv)
+    local out = ArrayList.new()
+    for i=0, all:size()-1 do
+        local it = all:get(i)
+        if DNA.isBeverageForNeed(it, needKey or "thirst") then out:add(it) end
+    end
+    return out
+end
+
+-- function DNA.drinkItemPortion(item, portion)
+--     local p = getPlayer()
+--     if not p or not item or not portion then return end
+--     if portion == "satiety" then
+--         local hunger = p:getStats() and p:getStats():getHunger() or 0
+--         local ok, _, eff = DNA.edibleByHunger(item)
+--         if not ok or not eff or eff <= 0 then
+--             print("[DNA] Cannot compute satiety portion for this drink")
+--             return
+--         end
+--         portion = math.min(1, hunger / eff)
+--         if portion <= 0 then
+--             print("[DNA] Already satiated")
+--             return
+--         end
+--     end
+--     if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.transferIfNeeded then
+--         local done = false
+--         local ok1 = pcall(function() ISInventoryPaneContextMenu.transferIfNeeded(p, item) end)
+--         if ok1 then done = true end
+--         if not done then pcall(function() ISInventoryPaneContextMenu.transferIfNeeded(item) end) end
+--     end
+--     if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.eatItem then
+--         ISInventoryPaneContextMenu.eatItem(item, portion, 0)
+--         return
+--     end
+--     print("[DNA] No drink action available")
+-- end
+
+local function addDrinkPortionSubmenu(context, parentMenu, group, needKey)
+    needKey = needKey or "hunger"
+    local first = group.items and group.items[1]
+    if not first then
+        parentMenu:addOption("No items", nil, nil)
+        return
+    end
+    local pl = getPlayer()
+    local label = first:getName() .. " " .. (DNA.parenLabel(pl, first, needKey) or "")
+    local opt = parentMenu:addOption(label ~= "" and label or first:getName(), context, function(selfCtx)
+        if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end
+        DNA.eatItemPortion(first, "satiety")
+    end)
+    local sub = ISContextMenu:getNew(context)
+    context:addSubMenu(opt, sub)
+    sub:addOption("Drink all",     context, function(selfCtx) if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end DNA.eatItemPortion(first, 1.0) end)
+    sub:addOption("Drink half",    context, function(selfCtx) if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end DNA.eatItemPortion(first, 0.5) end)
+    sub:addOption("Drink quarter", context, function(selfCtx) if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end DNA.eatItemPortion(first, 0.25) end)
+    local tex = (first.getTex and first:getTex()) or (first.getTexture and first:getTexture()) or nil
+    if tex then opt.iconTexture = tex; opt.texture = tex end
+end
+
+function Debug_DNA.msgBeverages()
     local p = getPlayer()
-    if not p then print("[DNA] No player") return end
+    if not p then DNA.msg("[DNA] No player") return end
     local list = DNA.findBeveragesInInventory(p:getInventory())
-    print(string.format("[DNA] Inventory beverages: %d", list:size()))
+    DNA.msg(string.format("[DNA] Inventory beverages: %d", list:size()))
     for i=0,list:size()-1 do
         local it = list:get(i)
         local reasons = table.concat(DNA.beverageReasons(it), ",")
-        print(string.format("Drink: %s [%s] | reasons=%s", it:getName(), it:getFullType(), reasons ~= "" and reasons or "none"))
+        DNA.msg(string.format("Drink: %s [%s] | reasons=%s", it:getName(), it:getFullType(), reasons ~= "" and reasons or "none"))
     end
 end
