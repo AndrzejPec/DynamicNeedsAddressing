@@ -13,27 +13,57 @@ function DNA.isFoodLike(item) -- if item is not food-like, it is definately not 
     return false
 end
 
-function DNA.isRotten(item)
-    local v = (item.isRotten and item:isRotten())
-          or (item.IsRotten and item:IsRotten())
+function DNA.isPoison(item)
+    local v = (item.isPoison and item:isPoison())
+          or (item.IsPoison and item:IsPoison())
     return v and true or false
 end
 
-function DNA.isCooked(item) -- if item is not cookable, it is considered cooked thus edible
-    if not item then return true end
-    if not (item.isCookable and item:isCookable()) then
+function DNA.isFrozen(item)
+    local v = (item.isFrozen and item:isFrozen())
+          or (item.IsFrozen and item:IsFrozen())
+    return v and true or false
+end
+
+function DNA.isSpice(item)
+    local v = (item.isSpice and item:isSpice())
+          or (item.IsSpice and item:IsSpice())
+    return v and true or false
+end
+
+-- function DNA.isRotten(item)
+--     local v = (item.isRotten and item:isRotten())
+--           or (item.IsRotten and item:IsRotten())
+--     return v and true or false
+-- end
+
+-- function DNA.isCooked(item) -- if item is not cookable, it is considered cooked thus edible
+--     if not item then return true end
+--     if not (item.isCookable and item:isCookable()) then
+--         return true
+--     end
+--     local v = (item.isCooked and item:isCooked())
+--            or (item.IsCooked and item:IsCooked())
+--     return v and true or false
+-- end
+
+function DNA.isSafeToEatNow(item)
+    if not item then return false end
+    if item.isRotten and item:isRotten() then return false end
+    if item.isBurnt and item:isBurnt() then return false end
+    if item.isCookable and item:isCookable() then
+        if item.isCooked and item:isCooked() then return true end
+        if item.isbDangerousUncooked and item:isbDangerousUncooked() then return false end
         return true
     end
-    local v = (item.isCooked and item:isCooked())
-           or (item.IsCooked and item:IsCooked())
-    return v and true or false
+    return true
 end
 
-function DNA.isBurnt(item)
-    local v = (item.isBurnt and item:isBurnt())
-          or (item.IsBurnt and item:IsBurnt())
-    return v and true or false
-end
+-- function DNA.isBurnt(item)
+--     local v = (item.isBurnt and item:isBurnt())
+--           or (item.IsBurnt and item:IsBurnt())
+--     return v and true or false
+-- end
 
 function DNA.edibleByHunger(item) -- here's where cigarettes and such are handled (they don't satiate hunger)
     local h = item.getHungerChange and item:getHungerChange() or nil
@@ -43,12 +73,16 @@ function DNA.edibleByHunger(item) -- here's where cigarettes and such are handle
 end
 
 function DNA.isEdible(item)
+    if DNA.isBeverage and DNA.isBeverage(item) then return false end
     if not DNA.isFoodLike(item) then return false end
-    if DNA.isRotten(item) or DNA.isBurnt(item) then return false end
-    if not DNA.isCooked(item) then return false end
+    if DNA.isFrozen(item) and DNA.pointsForNeed(item, "unhappy") <= 0 then return false end
+    if not DNA.isSafeToEatNow(item) then return false end
+    if DNA.isSpice(item) and DNA.pointsForNeed(item, "unhappy") <= 0 then return false end
+    if DNA.isPoison(item) then return false end
     local ok = DNA.edibleByHunger(item)
     return ok
 end
+
 
 function DNA.collectEdiblesFrom(inv)
     local out = ArrayList.new()
@@ -155,11 +189,11 @@ function DNA.eatItemPortion(item, portion)
     print("[DNA] No eat action available")
 end
 
-local function ediblePoints(it)
-    local ok, _, eff = DNA.edibleByHunger(it)
-    if not ok or not eff then return 0 end
-    return math.floor(eff * 100 + 0.5)
-end
+-- local function ediblePoints(it)
+--     local ok, _, eff = DNA.edibleByHunger(it)
+--     if not ok or not eff then return 0 end
+--     return math.floor(eff * 100 + 0.5)
+-- end
 
 --- MENU ---
 
@@ -174,12 +208,13 @@ function fmtGroupLabel(g)
     return base
 end
 
-local function groupEdibles(list)
+local function groupEdibles(list, needKey)
+    needKey = needKey or "hunger"
     local map, groups = {}, {}
     for i = 0, list:size() - 1 do
         local it = list:get(i)
         local name = it:getName() or it:getType()
-        local pts = ediblePoints(it)
+        local pts = DNA.pointsForNeed(it, needKey)
         local key = tostring(name) .. "|" .. tostring(pts)
         local g = map[key]
         if not g then
@@ -202,23 +237,20 @@ local function addPortionSubmenu(context, parentMenu, group)
         parentMenu:addOption("No items", nil, nil)
         return
     end
-
-    local opt = parentMenu:addOption(fmtGroupLabel(group), context, function(selfCtx)
+    local pl = getPlayer()
+    local label = first:getName() .. " " .. (DNA.parenLabel(pl, first, "hunger") or "")
+    local opt = parentMenu:addOption(label ~= "" and label or first:getName(), context, function(selfCtx)
         if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end
         DNA.eatItemPortion(first, "satiety")
     end)
-
     local sub = ISContextMenu:getNew(context)
     context:addSubMenu(opt, sub)
-
     sub:addOption("Eat all",     context, function(selfCtx) if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end DNA.eatItemPortion(first, 1.0) end)
     sub:addOption("Eat half",    context, function(selfCtx) if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end DNA.eatItemPortion(first, 0.5) end)
     sub:addOption("Eat quarter", context, function(selfCtx) if selfCtx and selfCtx.closeAll then selfCtx:closeAll() end DNA.eatItemPortion(first, 0.25) end)
-
     local tex = (first.getTex and first:getTex()) or (first.getTexture and first:getTexture()) or nil
     if tex then opt.iconTexture = tex; opt.texture = tex end
 end
-
 
 function DNA.openEdiblesMenu(playerObj, x, y)
     playerObj = playerObj or getPlayer()
@@ -231,7 +263,7 @@ function DNA.openEdiblesMenu(playerObj, x, y)
     local mx = (x or getMouseX())
     local my = (y or getMouseY())
 
-    local groups = groupEdibles(foods)
+    local groups = groupEdibles(foods, "hunger")
     local context = ISContextMenu.get(px, mx, my)
     context.x = mx + 5
     context.y = my + 15
@@ -252,29 +284,29 @@ end
 
 --- DEBUG ---
 
-function Debug_PrintAllEdibles(playerObj)
-    playerObj = playerObj or getPlayer()
-    if not playerObj then print("[DynamicNeedsAddressing] [Edibles] No player") return end
-    local inv = playerObj:getInventory()
-    local foods = DNA.collectEdiblesFrom(inv)
-    print(string.format("[Edibles] found %d edible items", foods:size()))
-    for i = 0, foods:size() - 1 do
-        local it = foods:get(i)
-        local ok, hRaw, hEff = DNA.edibleByHunger(it)
-        local d_isFood    = DNA.isFoodLike(it)
-        local d_catIsFood = (it.getCategory and it:getCategory() == "Food") or false
-        local d_isRotten  = DNA.isRotten(it)
-        local d_isBurnt   = DNA.isBurnt(it)
-        print(string.format(
-            " - %s [%s] | hungerChange=%s | hungerEff=%s | isFood=%s | cat=='Food'=%s | IsRotten=%s | isBurnt=%s",
-            it:getName(),
-            it:getFullType(),
-            tostring(hRaw),
-            tostring(hEff),
-            tostring(d_isFood),
-            tostring(d_catIsFood),
-            tostring(d_isRotten),
-            tostring(d_isBurnt)
-        ))
-    end
-end
+-- function Debug_PrintAllEdibles(playerObj)
+--     playerObj = playerObj or getPlayer()
+--     if not playerObj then print("[DynamicNeedsAddressing] [Edibles] No player") return end
+--     local inv = playerObj:getInventory()
+--     local foods = DNA.collectEdiblesFrom(inv)
+--     print(string.format("[Edibles] found %d edible items", foods:size()))
+--     for i = 0, foods:size() - 1 do
+--         local it = foods:get(i)
+--         local ok, hRaw, hEff = DNA.edibleByHunger(it)
+--         local d_isFood    = DNA.isFoodLike(it)
+--         local d_catIsFood = (it.getCategory and it:getCategory() == "Food") or false
+--         local d_isRotten  = DNA.isRotten(it)
+--         local d_isBurnt   = DNA.isBurnt(it)
+--         print(string.format(
+--             " - %s [%s] | hungerChange=%s | hungerEff=%s | isFood=%s | cat=='Food'=%s | IsRotten=%s | isBurnt=%s",
+--             it:getName(),
+--             it:getFullType(),
+--             tostring(hRaw),
+--             tostring(hEff),
+--             tostring(d_isFood),
+--             tostring(d_catIsFood),
+--             tostring(d_isRotten),
+--             tostring(d_isBurnt)
+--         ))
+--     end
+-- end
