@@ -47,13 +47,13 @@ end
 function DNA.collectBeveragesFrom(inv)
     local out = DNA.findBeveragesInInventory(inv)
     local p = getPlayer()
-    if not p then DNA.msg("[DNA] No player") return out end
+    if not p then print("[DNA] No player") return out end
     local sq = p:getSquare()
-    if not sq then DNA.msg("[DNA] No player square") return out end
+    if not sq then print("[DNA] No player square") return out end
     local cell = getCell()
-    if not cell then DNA.msg("[DNA] No cell") return out end
+    if not cell then print("[DNA] No cell") return out end
     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    DNA.msg(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
+    print(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
     for dx=-1,1 do
         for dy=-1,1 do
             local gs = cell:getGridSquare(x+dx, y+dy, z)
@@ -92,16 +92,27 @@ function DNA.collectBeveragesFrom(inv)
             end
         end
     end
-    DNA.msg(string.format("[DNA] Total collected beverages: %d", out:size()))
+    print(string.format("[DNA] Total collected beverages: %d", out:size()))
     return out
+end
+
+function DNA.isWaterSource(it)
+    local v = (it and it.isWaterSource and it:isWaterSource()) or (it and it.IsWaterSource and it:IsWaterSource())
+    return v and true or false
 end
 
 function DNA.isBeverageForNeed(it, needKey)
     if not DNA.isBeverage(it) then return false end
     local pts = DNA.needPoints and DNA.needPoints(it) or nil
-    if not pts then return false end
-    local v = pts[needKey] or 0
-    return v > 0
+    local v = pts and pts[needKey] or 0
+    if v and v > 0 then return true end
+    if needKey == "hunger" then
+        if _hasFluidComponent(it) and not DNA.isWaterSource(it) then return true end
+    end
+    if needKey == "thirst" then
+        return true
+    end
+    return false
 end
 
 function DNA.findBeveragesForNeed(inv, needKey)
@@ -143,7 +154,7 @@ end
 --     print("[DNA] No drink action available")
 -- end
 
-local function addDrinkPortionSubmenu(context, parentMenu, group, needKey)
+function DNA.addDrinkPortionSubmenu(context, parentMenu, group, needKey)
     needKey = needKey or "hunger"
     local first = group.items and group.items[1]
     if not first then
@@ -165,14 +176,14 @@ local function addDrinkPortionSubmenu(context, parentMenu, group, needKey)
     if tex then opt.iconTexture = tex; opt.texture = tex end
 end
 
-function Debug_DNA.msgBeverages()
+function Debug_printBeverages()
     local p = getPlayer()
-    if not p then DNA.msg("[DNA] No player") return end
+    if not p then print("[DNA] No player") return end
     local list = DNA.findBeveragesInInventory(p:getInventory())
-    DNA.msg(string.format("[DNA] Inventory beverages: %d", list:size()))
+    print(string.format("[DNA] Inventory beverages: %d", list:size()))
     for i=0,list:size()-1 do
         local it = list:get(i)
         local reasons = table.concat(DNA.beverageReasons(it), ",")
-        DNA.msg(string.format("Drink: %s [%s] | reasons=%s", it:getName(), it:getFullType(), reasons ~= "" and reasons or "none"))
+        print(string.format("Drink: %s [%s] | reasons=%s", it:getName(), it:getFullType(), reasons ~= "" and reasons or "none"))
     end
 end

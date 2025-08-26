@@ -89,14 +89,14 @@ function DNA.collectEdiblesFrom(inv)
     end
 
     local p = getPlayer()
-    if not p then DNA.msg("[DNA] No player") return out end
+    if not p then print("[DNA] No player") return out end
     local sq = p:getSquare()
-    if not sq then DNA.msg("[DNA] No player square") return out end
+    if not sq then print("[DNA] No player square") return out end
     local cell = getCell()
-    if not cell then DNA.msg("[DNA] No cell") return out end
+    if not cell then print("[DNA] No cell") return out end
 
     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    DNA.msg(string.format("[DNA] Checking 3x3 squares around (%d,%d,%d)", x, y, z))
+    print(string.format("[DNA] Checking 3x3 squares around (%d,%d,%d)", x, y, z))
 
     for dx = -1, 1 do
         for dy = -1, 1 do
@@ -109,7 +109,7 @@ function DNA.collectEdiblesFrom(inv)
                         local wo = wobs:get(i)
                         local item = wo and wo.getItem and wo:getItem() or nil
                         if item then
-                            DNA.msg(string.format("[DNA] floor item: %s [%s]", item:getName(), item:getFullType()))
+                            print(string.format("[DNA] floor item: %s [%s]", item:getName(), item:getFullType()))
                             if DNA.isEdible(item) then out:add(item) end
                         end
                         if wo and wo.getItems and wo:getItems() then
@@ -117,7 +117,7 @@ function DNA.collectEdiblesFrom(inv)
                             for k = 0, stack:size() - 1 do
                                 local it = stack:get(k)
                                 if it then
-                                    DNA.msg(string.format("[DNA] floor stack: %s [%s]", it:getName(), it:getFullType()))
+                                    print(string.format("[DNA] floor stack: %s [%s]", it:getName(), it:getFullType()))
                                     if DNA.isEdible(it) then out:add(it) end
                                 end
                             end
@@ -132,16 +132,16 @@ function DNA.collectEdiblesFrom(inv)
                         local o = objs:get(i)
                         if o and o.getContainer and o:getContainer() then
                             local c = o:getContainer()
-                            DNA.msg(string.format("[DNA] container found: %s at (%d,%d,%d) with %d items",
+                            print(string.format("[DNA] container found: %s at (%d,%d,%d) with %d items",
                                 tostring(o:getSprite() and o:getSprite():getName() or o:getName() or "unknown"),
                                 x+dx, y+dy, z, c:getItems():size()))
                             local items = c:getItems()
                             for k = 0, items:size() - 1 do
                                 local it = items:get(k)
                                 if it then
-                                    DNA.msg(string.format("    container item: %s [%s]", it:getName(), it:getFullType()))
+                                    print(string.format("    container item: %s [%s]", it:getName(), it:getFullType()))
                                     if DNA.isEdible(it) then
-                                        DNA.msg("    -> edible, adding")
+                                        print("    -> edible, adding")
                                         out:add(it)
                                     end
                                 end
@@ -153,7 +153,7 @@ function DNA.collectEdiblesFrom(inv)
         end
     end
 
-    DNA.msg(string.format("[DNA] Total collected edibles: %d", out:size()))
+    print(string.format("[DNA] Total collected edibles: %d", out:size()))
     return out
 end
 
@@ -164,12 +164,12 @@ function DNA.eatItemPortion(item, portion)
         local hunger = p:getStats() and p:getStats():getHunger() or 0
         local ok, _, eff = DNA.edibleByHunger(item)
         if not ok or not eff or eff <= 0 then
-            DNA.msg("[DNA] Cannot compute satiety portion for this item")
+            print("[DNA] Cannot compute satiety portion for this item")
             return
         end
         portion = math.min(1, hunger / eff)
         if portion <= 0 then
-            DNA.msg("[DNA] Already satiated")
+            print("[DNA] Already satiated")
             return
         end
     end
@@ -183,7 +183,7 @@ function DNA.eatItemPortion(item, portion)
         ISInventoryPaneContextMenu.eatItem(item, portion, 0)
         return
     end
-    DNA.msg("[DNA] No eat action available")
+    print("[DNA] No eat action available")
 end
 
 -- local function ediblePoints(it)
@@ -255,11 +255,14 @@ function DNA.openEdiblesMenu(playerObj, x, y)
 
     local inv = playerObj:getInventory()
     local foods = DNA.collectEdiblesFrom(inv)
+
     local beveragesAll = DNA.collectBeveragesFrom and DNA.collectBeveragesFrom(inv) or ArrayList.new()
     local beveragesH = ArrayList.new()
-    for i=0, beveragesAll:size()-1 do
+    for i = 0, beveragesAll:size() - 1 do
         local it = beveragesAll:get(i)
-        if DNA.pointsForNeed(it, "hunger") > 0 then beveragesH:add(it) end
+        if DNA.isBeverageForNeed and DNA.isBeverageForNeed(it, "hunger") then
+            beveragesH:add(it)
+        end
     end
 
     local px = playerObj:getPlayerNum() or 0
@@ -292,19 +295,19 @@ function DNA.openEdiblesMenu(playerObj, x, y)
         local subDrink = ISContextMenu:getNew(context)
         context:addSubMenu(rootDrink, subDrink)
         for _, g in ipairs(groupsDrink) do
-            addDrinkPortionSubmenu(context, subDrink, g, "hunger")
+            DNA.addDrinkPortionSubmenu(context, subDrink, g, "hunger")
         end
     end
 end
 
 --- DEBUG ---
 
--- function Debug_DNA.msgAllEdibles(playerObj)
+-- function Debug_printAllEdibles(playerObj)
 --     playerObj = playerObj or getPlayer()
---     if not playerObj then DNA.msg("[DynamicNeedsAddressing] [Edibles] No player") return end
+--     if not playerObj then print("[DynamicNeedsAddressing] [Edibles] No player") return end
 --     local inv = playerObj:getInventory()
 --     local foods = DNA.collectEdiblesFrom(inv)
---     DNA.msg(string.format("[Edibles] found %d edible items", foods:size()))
+--     print(string.format("[Edibles] found %d edible items", foods:size()))
 --     for i = 0, foods:size() - 1 do
 --         local it = foods:get(i)
 --         local ok, hRaw, hEff = DNA.edibleByHunger(it)
@@ -312,7 +315,7 @@ end
 --         local d_catIsFood = (it.getCategory and it:getCategory() == "Food") or false
 --         local d_isRotten  = DNA.isRotten(it)
 --         local d_isBurnt   = DNA.isBurnt(it)
---         DNA.msg(string.format(
+--         print(string.format(
 --             " - %s [%s] | hungerChange=%s | hungerEff=%s | isFood=%s | cat=='Food'=%s | IsRotten=%s | isBurnt=%s",
 --             it:getName(),
 --             it:getFullType(),

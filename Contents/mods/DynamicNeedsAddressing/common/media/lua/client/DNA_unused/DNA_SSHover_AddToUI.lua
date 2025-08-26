@@ -3,7 +3,7 @@
 -- if _G.__SSHover_Loaded then return end
 -- _G.__SSHover_Loaded = true
 
--- DNA.msg("[SSHover] start: per-instancja hook na SSBar przez addToUIManager + chaining")
+-- print("[SSHover] start: per-instancja hook na SSBar przez addToUIManager + chaining")
 
 -- ----------------------------------------------------------------------
 -- -- 0) Opcje
@@ -62,7 +62,7 @@
 --         if idx and self.barInfo and self.barInfo[idx] then
 --             local title = tostring(self.barInfo[idx][1] or "")
 --             local name  = tostring(self.barInfo[idx][6] or "")
---             DNA.msg(string.format("[SSHover] CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
+--             print(string.format("[SSHover] CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
 --         end
 --         if type(orig_onMouseUp) == "function" then
 --             return orig_onMouseUp(self, x, y)
@@ -78,7 +78,7 @@
 --             if idx and self.barInfo and self.barInfo[idx] then
 --                 local title = tostring(self.barInfo[idx][1] or "")
 --                 local name  = tostring(self.barInfo[idx][6] or "")
---                 DNA.msg(string.format("[SSHover] RIGHT-CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
+--                 print(string.format("[SSHover] RIGHT-CLICK HORIZONTAL #%d  name=%s  title=%s", idx, name, title))
 --             end
 --             if type(orig_onRightMouseUp) == "function" then
 --                 return orig_onRightMouseUp(self, x, y)
@@ -106,7 +106,7 @@
 --     end
 
 --     panel.__sshover_patched = true
---     DNA.msg("[SSHover] spatchowano instancję SSBar przez addToUIManager().")
+--     print("[SSHover] spatchowano instancję SSBar przez addToUIManager().")
 --     return true
 -- end
 
@@ -135,7 +135,7 @@
 
 -- -- Pierwsze owinięcie
 -- wrap_method(ISPanel, "addToUIManager")
--- DNA.msg("[SSHover] ISPanel:addToUIManager zhookowany – patch per-instancja ready.")
+-- print("[SSHover] ISPanel:addToUIManager zhookowany – patch per-instancja ready.")
 
 -- -- Self-heal: jeśli ktoś nadpisze później, owijamy go też (zachowujemy łańcuszek)
 -- if not _G.__SSHover_selfHeal then
@@ -145,7 +145,7 @@
 --         if ISPanel.addToUIManager ~= last and not (ISPanel.addToUIManager.__sshover_wrapped) then
 --             wrap_method(ISPanel, "addToUIManager")
 --             last = ISPanel.addToUIManager
---             DNA.msg("[SSHover] re-wrap addToUIManager (chaining) – koegzystencja zachowana.")
+--             print("[SSHover] re-wrap addToUIManager (chaining) – koegzystencja zachowana.")
 --         end
 --     end)
 -- end
@@ -176,7 +176,7 @@
 --         end
 --     end
 --     if hit > 0 then
---         DNA.msg(string.format("[SSHover] tryPatchExisting: spatchowano %d istniejących instancji.", hit))
+--         print(string.format("[SSHover] tryPatchExisting: spatchowano %d istniejących instancji.", hit))
 --     end
 -- end
 
@@ -192,4 +192,4 @@
 --     end)
 -- end)
 
--- DNA.msg("[SSHover] gotowe – klikaj LPM w poziome paski, będzie log z name/title.")
+-- print("[SSHover] gotowe – klikaj LPM w poziome paski, będzie log z name/title.")

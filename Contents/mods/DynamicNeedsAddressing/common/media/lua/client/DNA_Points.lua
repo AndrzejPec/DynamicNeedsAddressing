@@ -110,12 +110,12 @@ function DNA.isStale(it)
     return false
 end
 
-function Debug_DNA.msgAllEdibles(playerObj)
+function Debug_printAllEdibles(playerObj)
     playerObj = playerObj or getPlayer()
-    if not playerObj then DNA.msg("[DynamicNeedsAddressing] [Edibles] No player") return end
+    if not playerObj then print("[DynamicNeedsAddressing] [Edibles] No player") return end
     local inv = playerObj:getInventory()
     local foods = DNA.collectEdiblesFrom(inv)
-    DNA.msg(string.format("[Edibles] found %d edible items", foods:size()))
+    print(string.format("[Edibles] found %d edible items", foods:size()))
     for i = 0, foods:size() - 1 do
         local it = foods:get(i)
         local raw = DNA.needRaw(it)
@@ -125,7 +125,7 @@ function Debug_DNA.msgAllEdibles(playerObj)
         local poison = it.isPoison and it:isPoison() or false
         local frozen = it.isFrozen and it:isFrozen() or false
         local stale = DNA.isStale(it)
-        DNA.msg(string.format(
+        print(string.format(
             " - %s [%s] | hunger=%s eff=%s pts=%d | thirst=%s eff=%s pts=%d | boredom=%s eff=%s pts=%d | unhappy=%s eff=%s pts=%d | stress=%s eff=%s pts=%d | fatigue=%s eff=%s pts=%d | endurance=%s eff=%s pts=%d | spice=%s | poison=%s | frozen=%s | stale=%s",
             it:getName(),
             it:getFullType(),
