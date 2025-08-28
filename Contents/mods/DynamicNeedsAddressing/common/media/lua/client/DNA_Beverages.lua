@@ -1,14 +1,29 @@
 DNA = DNA or {}
 
+local function _tryGetFluidContainer(it)
+    if not it then return nil end
+    local ok,res = pcall(function() return it.getFluidContainerFromSelfOrWorldItem and it:getFluidContainerFromSelfOrWorldItem() end)
+    if ok and res then return res end
+    local ok2,res2 = pcall(function() return it.getFluidContainer and it:getFluidContainer() end)
+    if ok2 and res2 then return res2 end
+    return nil
+end
+
 local function _hasFluidComponent(it)
     if not it then return false end
-    local ok1, fc = pcall(function() return it.getFluidContainer and it:getFluidContainer() end)
-    if ok1 and fc then return true end
+    local fc = _tryGetFluidContainer(it)
+    if fc then return true end
     local ok2, cap = pcall(function() return it.getFluidContainerCapacity and it:getFluidContainerCapacity() end)
     if ok2 and cap and cap > 0 then return true end
     local ok3, v3 = pcall(function() return it.isFluidContainer and it:isFluidContainer() end)
     if ok3 and v3 then return true end
-    return false
+    return false6
+end
+`
+local function _itemForDrinkAction(it)
+    if not it then return nil end
+    local wi = it.getWorldItem and it:getWorldItem() or nil
+    return wi or it
 end
 
 function DNA.beverageReasons(it)
@@ -109,19 +124,15 @@ function DNA.isBeverageForNeed(it, needKey)
 
     if needKey == "hunger" then
         if h > 0 then return true end
-        local fc = nil
-        if it.getFluidContainer then
-            local ok, res = pcall(function() return it:getFluidContainer() end)
-            if ok then fc = res end
-        end
+        local fc = _tryGetFluidContainer(it)
         if fc then
             local amt = nil
-            local okA, vA = pcall(function() return fc.getAmount and fc:getAmount() end)
-            if okA then amt = vA end
+            local okA, vA = pcall(function() return fc.getPrimaryFluidAmount and fc:getPrimaryFluidAmount() end)
+            if not okA or not vA then okA, vA = pcall(function() return fc.getAmount and fc:getAmount() end) end
             local empty = nil
             local okB, vB = pcall(function() return fc.isEmpty and fc:isEmpty() end)
             if okB then empty = vB end
-            if (amt and amt > 0) or (empty == false) then
+            if (vA and vA > 0) or (empty == false) then
                 if not DNA.isWaterSource(it) then return true end
             end
         end
@@ -130,15 +141,12 @@ function DNA.isBeverageForNeed(it, needKey)
 
     if needKey == "thirst" then
         if t > 0 then return true end
-        local fc = nil
-        if it.getFluidContainer then
-            local ok, res = pcall(function() return it:getFluidContainer() end)
-            if ok then fc = res end
-        end
+        local fc = _tryGetFluidContainer(it)
         if fc then
             local okB, vB = pcall(function() return fc.isEmpty and fc:isEmpty() end)
             if okB and vB == false then return true end
-            local okA, vA = pcall(function() return fc.getAmount and fc:getAmount() end)
+            local okA, vA = pcall(function() return fc.getPrimaryFluidAmount and fc:getPrimaryFluidAmount() end)
+            if not okA or not vA then okA, vA = pcall(function() return fc.getAmount and fc:getAmount() end) end
             if okA and vA and vA > 0 then return true end
         end
         return false
@@ -147,7 +155,6 @@ function DNA.isBeverageForNeed(it, needKey)
     local v = pts and (pts[needKey] or 0) or 0
     return v > 0
 end
-
 
 function DNA.findBeveragesForNeed(inv, needKey)
     local all = DNA.findBeveragesInInventory(inv)
@@ -160,7 +167,7 @@ function DNA.findBeveragesForNeed(inv, needKey)
 end
 
 function DNA._fluidHungerEffect(item)
-    local fc = item.getFluidContainerFromSelfOrWorldItem and item:getFluidContainerFromSelfOrWorldItem() or (item.getFluidContainer and item:getFluidContainer() or nil)
+    local fc = _tryGetFluidContainer(item)
     if not fc then print("[DNA] _fluidHungerEffect: no FluidContainer"); return nil end
     local fluid = fc.getPrimaryFluid and fc:getPrimaryFluid()
     if not fluid then print("[DNA] _fluidHungerEffect: no primary fluid"); return nil end
@@ -196,11 +203,12 @@ function DNA.drinkItemPortion(item, portion)
         if portion <= 0 then print("[DNA] Already satiated"); return end
     end
 
-    local fc = item.getFluidContainerFromSelfOrWorldItem and item:getFluidContainerFromSelfOrWorldItem() or (item.getFluidContainer and item:getFluidContainer() or nil)
+    local fc = _tryGetFluidContainer(item)
     print("[DNA] final fc=", tostring(fc))
     if fc then
-        print("[DNA] calling onDrinkFluid with portion=", tostring(portion))
-        ISInventoryPaneContextMenu.onDrinkFluid(item, portion, p)
+        local argItem = _itemForDrinkAction(item)
+        print("[DNA] calling onDrinkFluid with portion=", tostring(portion), "argItem=", tostring(argItem))
+        ISInventoryPaneContextMenu.onDrinkFluid(argItem, portion, p)
         return
     end
 
@@ -229,8 +237,6 @@ function DNA.addDrinkPortionSubmenu(context, parentMenu, group, needKey)
     local tex = (first.getTex and first:getTex()) or (first.getTexture and first:getTexture()) or nil
     if tex then opt.iconTexture = tex; opt.texture = tex end
 end
-
---- DEBUG ---
 
 function Debug_printBeverages()
     local p = getPlayer()
@@ -282,7 +288,7 @@ function Debug_ProbeFluid(fullType)
     if not it then print("[DNA] Item not found: ".._str(fullType)) return end
     print(string.format("[DNA] Probe item: %s [%s]", it:getName(), it:getFullType()))
 
-    local fc = _safe_call(it, "getFluidContainer")
+    local fc = _tryGetFluidContainer(it)
     if not fc then
         print("[DNA] No FluidContainer")
         return
@@ -290,7 +296,7 @@ function Debug_ProbeFluid(fullType)
     print("[DNA] FluidContainer present = true")
 
     local cap = _first_non_nil(_safe_call(it,"getFluidContainerCapacity"), _safe_call(fc,"getCapacity"))
-    local amt = _safe_call(fc,"getAmount")
+    local amt = _first_non_nil(_safe_call(fc,"getPrimaryFluidAmount"), _safe_call(fc,"getAmount"))
     local rem = _safe_call(fc,"getRemaining")
     local pct = _safe_call(fc,"getPercent")
     local empty = _safe_call(fc,"isEmpty")
@@ -326,24 +332,15 @@ function DNA.debugFluidHT(itemType)
     local inv = p:getInventory()
     local item = inv:FindAndReturn(itemType)
     if not item then print("[DNA] not found item:", itemType); return end
-
-    local fc = item.getFluidContainerFromSelfOrWorldItem and item:getFluidContainerFromSelfOrWorldItem()
+    local fc = _tryGetFluidContainer(item)
     if not fc then print("[DNA] no fluidContainer for", itemType); return end
-
     local fluid = fc.getPrimaryFluid and fc:getPrimaryFluid()
     if not fluid then print("[DNA] no primary fluid for", itemType); return end
-
     local props = fluid.getProperties and fluid:getProperties()
     if not props then print("[DNA] no properties for", itemType); return end
-
     local hunger = props.getHungerChange and props:getHungerChange() or nil
     local thirst = props.getThirstChange and props:getThirstChange() or nil
-    if hunger == nil or thirst == nil then
-        print("[DNA] missing HT values for", itemType)
-        return
-    end
-
-    -- print("[DNA] fluid:", tostring(fluid:getName()))
+    if hunger == nil or thirst == nil then print("[DNA] missing HT values for", itemType); return end
     print("[DNA] hungerPer1000ml:", tostring(hunger))
     print("[DNA] thirstPer1000ml:", tostring(thirst))
 end

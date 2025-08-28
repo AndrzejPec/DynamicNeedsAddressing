@@ -81,28 +81,48 @@ function DNA.isEdible(item)
     return ok
 end
 
+local function _forEachContainer(o, fn)
+    if not o or not fn then return end
+    local ok1, c1 = pcall(function() return o.getContainer and o:getContainer() end)
+    if ok1 and c1 then fn(c1) end
+    local ok2, cnt = pcall(function() return o.getContainerCount and o:getContainerCount() end)
+    if ok2 and cnt and cnt > 0 then
+        for idx = 0, cnt - 1 do
+            local cont = nil
+            local okA, vA = pcall(function() return o.getContainerByIndex and o:getContainerByIndex(idx) end)
+            if okA and vA then cont = vA else
+                local okB, vB = pcall(function() return o.getContainer and o:getContainer(idx) end)
+                if okB and vB then cont = vB end
+            end
+            if cont then fn(cont) end
+        end
+    end
+    local ok3, list = pcall(function() return o.getContainers and o:getContainers() end)
+    if ok3 and list and list.size then
+        for i = 0, list:size() - 1 do
+            local cont = list:get(i)
+            if cont then fn(cont) end
+        end
+    end
+end
+
 function DNA.collectEdiblesFrom(inv)
     local out = ArrayList.new()
-
     if inv and inv.getAllEvalRecurse then
         inv:getAllEvalRecurse(function(it) return DNA.isEdible(it) end, out)
     end
-
     local p = getPlayer()
     if not p then print("[DNA] No player") return out end
     local sq = p:getSquare()
     if not sq then print("[DNA] No player square") return out end
     local cell = getCell()
     if not cell then print("[DNA] No cell") return out end
-
     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
     print(string.format("[DNA] Checking 3x3 squares around (%d,%d,%d)", x, y, z))
-
     for dx = -1, 1 do
         for dy = -1, 1 do
             local gs = cell:getGridSquare(x + dx, y + dy, z)
             if gs then
-                -- 1) WorldObjects na ziemi
                 local wobs = gs:getWorldObjects()
                 if wobs then
                     for i = 0, wobs:size() - 1 do
@@ -124,35 +144,33 @@ function DNA.collectEdiblesFrom(inv)
                         end
                     end
                 end
-
-                -- 2) Obiekty ze square (np. lodówki, szafki)
                 local objs = gs:getObjects()
                 if objs then
                     for i = 0, objs:size() - 1 do
                         local o = objs:get(i)
-                        if o and o.getContainer and o:getContainer() then
-                            local c = o:getContainer()
-                            print(string.format("[DNA] container found: %s at (%d,%d,%d) with %d items",
-                                tostring(o:getSprite() and o:getSprite():getName() or o:getName() or "unknown"),
-                                x+dx, y+dy, z, c:getItems():size()))
-                            local items = c:getItems()
-                            for k = 0, items:size() - 1 do
-                                local it = items:get(k)
-                                if it then
-                                    print(string.format("    container item: %s [%s]", it:getName(), it:getFullType()))
-                                    if DNA.isEdible(it) then
-                                        print("    -> edible, adding")
-                                        out:add(it)
+                        _forEachContainer(o, function(c)
+                            local items = c and c.getItems and c:getItems() or nil
+                            local cname = c and c.getType and c:getType() or "unknown"
+                            local count = items and items:size() or 0
+                            print(string.format("[DNA] container: %s at (%d,%d,%d) items=%d", tostring(cname), x+dx, y+dy, z, count))
+                            if items then
+                                for k = 0, items:size() - 1 do
+                                    local it = items:get(k)
+                                    if it then
+                                        print(string.format("    container item: %s [%s]", it:getName(), it:getFullType()))
+                                        if DNA.isEdible(it) then
+                                            print("    -> edible, adding")
+                                            out:add(it)
+                                        end
                                     end
                                 end
                             end
-                        end
+                        end)
                     end
                 end
             end
         end
     end
-
     print(string.format("[DNA] Total collected edibles: %d", out:size()))
     return out
 end
