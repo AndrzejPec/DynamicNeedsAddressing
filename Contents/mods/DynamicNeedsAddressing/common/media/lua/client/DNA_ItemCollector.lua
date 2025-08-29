@@ -29,9 +29,33 @@ local function _visitAllItemContainersOnObject(o, fn)
     end
 end
 
+local function _collectFromContainer(c, pred, out, visited)
+    if not c then return end
+    if visited[c] then return end
+    visited[c] = true
+    local items = c.getItems and c:getItems() or nil
+    if not items then return end
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        if it then
+            if pred(it) then out:add(it) end
+            local bag = _getItemContainerFromItem(it)
+            if bag then _collectFromContainer(bag, pred, out, visited) end
+        end
+    end
+end
+
+local function _collectFromItemAndNested(it, pred, out, visited)
+    if not it then return end
+    if pred(it) then out:add(it) end
+    local bag = _getItemContainerFromItem(it)
+    if bag then _collectFromContainer(bag, pred, out, visited) end
+end
+
 function DNA.collectItems(kind)
     local pred = _kindToPredicate(kind)
     local out = ArrayList.new()
+    local visited = {}
     local p = getPlayer()
     if not p then print("[DNA] No player") return out end
     local inv = p:getInventory()
@@ -53,32 +77,12 @@ function DNA.collectItems(kind)
                     for i = 0, wobs:size() - 1 do
                         local wo = wobs:get(i)
                         local item = wo and wo.getItem and wo:getItem() or nil
-                        if item and pred(item) then out:add(item) end
-                        if item then
-                            local bag = _getItemContainerFromItem(item)
-                            if bag and bag.getItems then
-                                local items = bag:getItems()
-                                for k = 0, items:size() - 1 do
-                                    local it = items:get(k)
-                                    if it and pred(it) then out:add(it) end
-                                end
-                            end
-                        end
+                        if item then _collectFromItemAndNested(item, pred, out, visited) end
                         if wo and wo.getItems and wo:getItems() then
                             local stack = wo:getItems()
                             for k = 0, stack:size() - 1 do
                                 local it = stack:get(k)
-                                if it and pred(it) then out:add(it) end
-                                if it then
-                                    local bag = _getItemContainerFromItem(it)
-                                    if bag and bag.getItems then
-                                        local items = bag:getItems()
-                                        for j = 0, items:size() - 1 do
-                                            local it2 = items:get(j)
-                                            if it2 and pred(it2) then out:add(it2) end
-                                        end
-                                    end
-                                end
+                                _collectFromItemAndNested(it, pred, out, visited)
                             end
                         end
                     end
@@ -88,13 +92,7 @@ function DNA.collectItems(kind)
                     for i = 0, objs:size() - 1 do
                         local o = objs:get(i)
                         _visitAllItemContainersOnObject(o, function(c)
-                            local items = c and c.getItems and c:getItems() or nil
-                            if items then
-                                for k = 0, items:size() - 1 do
-                                    local it = items:get(k)
-                                    if it and pred(it) then out:add(it) end
-                                end
-                            end
+                            _collectFromContainer(c, pred, out, visited)
                         end)
                     end
                 end
@@ -120,3 +118,11 @@ end
 function DNA.collectBeveragesFrom(_)
     return DNA.collectItems("beverage")
 end
+
+--- DEBUG ---
+
+local ed = DNA.collectEdibles()
+print("[DNA] Edibles total:", ed:size())
+
+local bev = DNA.collectBeverages()
+print("[DNA] Beverages total:", bev:size())

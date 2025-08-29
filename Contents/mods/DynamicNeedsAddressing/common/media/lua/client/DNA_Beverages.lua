@@ -51,66 +51,6 @@ function DNA.isBeverage(it)
     return DNA.beverageReason(it) ~= nil
 end
 
-function DNA.findBeveragesInInventory(inv)
-    local out = ArrayList.new()
-    if inv and inv.getAllEvalRecurse then
-        inv:getAllEvalRecurse(function(it) return DNA.isBeverage(it) end, out)
-    end
-    return out
-end
-
--- function DNA.collectBeveragesFrom(inv)
---     local out = DNA.findBeveragesInInventory(inv)
---     local p = getPlayer()
---     if not p then print("[DNA] No player") return out end
---     local sq = p:getSquare()
---     if not sq then print("[DNA] No player square") return out end
---     local cell = getCell()
---     if not cell then print("[DNA] No cell") return out end
---     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
---     print(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
---     for dx=-1,1 do
---         for dy=-1,1 do
---             local gs = cell:getGridSquare(x+dx, y+dy, z)
---             if gs then
---                 local wobs = gs:getWorldObjects()
---                 if wobs then
---                     for i=0,wobs:size()-1 do
---                         local wo = wobs:get(i)
---                         local item = wo and wo.getItem and wo:getItem() or nil
---                         if item and DNA.isBeverage(item) then out:add(item) end
---                         if wo and wo.getItems and wo:getItems() then
---                             local stack = wo:getItems()
---                             for k=0,stack:size()-1 do
---                                 local it = stack:get(k)
---                                 if it and DNA.isBeverage(it) then out:add(it) end
---                             end
---                         end
---                     end
---                 end
---                 local objs = gs:getObjects()
---                 if objs then
---                     for i=0,objs:size()-1 do
---                         local o = objs:get(i)
---                         if o and o.getContainer and o:getContainer() then
---                             local c = o:getContainer()
---                             local items = c and c:getItems() or nil
---                             if items then
---                                 for k=0,items:size()-1 do
---                                     local it = items:get(k)
---                                     if it and DNA.isBeverage(it) then out:add(it) end
---                                 end
---                             end
---                         end
---                     end
---                 end
---             end
---         end
---     end
---     print(string.format("[DNA] Total collected beverages: %d", out:size()))
---     return out
--- end
-
 function DNA.isWaterSource(it)
     local v = (it and it.isWaterSource and it:isWaterSource()) or (it and it.IsWaterSource and it:IsWaterSource())
     return v and true or false
@@ -154,16 +94,6 @@ function DNA.isBeverageForNeed(it, needKey)
 
     local v = pts and (pts[needKey] or 0) or 0
     return v > 0
-end
-
-function DNA.findBeveragesForNeed(inv, needKey)
-    local all = DNA.findBeveragesInInventory(inv)
-    local out = ArrayList.new()
-    for i = 0, all:size()-1 do
-        local it = all:get(i)
-        if DNA.isBeverageForNeed(it, needKey or "thirst") then out:add(it) end
-    end
-    return out
 end
 
 function DNA._fluidHungerEffect(item)
@@ -237,6 +167,8 @@ function DNA.addDrinkPortionSubmenu(context, parentMenu, group, needKey)
     local tex = (first.getTex and first:getTex()) or (first.getTexture and first:getTexture()) or nil
     if tex then opt.iconTexture = tex; opt.texture = tex end
 end
+
+--- DEBUG ---
 
 function Debug_printBeverages()
     local p = getPlayer()
