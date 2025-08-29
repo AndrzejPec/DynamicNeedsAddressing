@@ -17,9 +17,9 @@ local function _hasFluidComponent(it)
     if ok2 and cap and cap > 0 then return true end
     local ok3, v3 = pcall(function() return it.isFluidContainer and it:isFluidContainer() end)
     if ok3 and v3 then return true end
-    return false6
+    return false
 end
-`
+
 local function _itemForDrinkAction(it)
     if not it then return nil end
     local wi = it.getWorldItem and it:getWorldItem() or nil
@@ -59,57 +59,57 @@ function DNA.findBeveragesInInventory(inv)
     return out
 end
 
-function DNA.collectBeveragesFrom(inv)
-    local out = DNA.findBeveragesInInventory(inv)
-    local p = getPlayer()
-    if not p then print("[DNA] No player") return out end
-    local sq = p:getSquare()
-    if not sq then print("[DNA] No player square") return out end
-    local cell = getCell()
-    if not cell then print("[DNA] No cell") return out end
-    local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    print(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
-    for dx=-1,1 do
-        for dy=-1,1 do
-            local gs = cell:getGridSquare(x+dx, y+dy, z)
-            if gs then
-                local wobs = gs:getWorldObjects()
-                if wobs then
-                    for i=0,wobs:size()-1 do
-                        local wo = wobs:get(i)
-                        local item = wo and wo.getItem and wo:getItem() or nil
-                        if item and DNA.isBeverage(item) then out:add(item) end
-                        if wo and wo.getItems and wo:getItems() then
-                            local stack = wo:getItems()
-                            for k=0,stack:size()-1 do
-                                local it = stack:get(k)
-                                if it and DNA.isBeverage(it) then out:add(it) end
-                            end
-                        end
-                    end
-                end
-                local objs = gs:getObjects()
-                if objs then
-                    for i=0,objs:size()-1 do
-                        local o = objs:get(i)
-                        if o and o.getContainer and o:getContainer() then
-                            local c = o:getContainer()
-                            local items = c and c:getItems() or nil
-                            if items then
-                                for k=0,items:size()-1 do
-                                    local it = items:get(k)
-                                    if it and DNA.isBeverage(it) then out:add(it) end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    print(string.format("[DNA] Total collected beverages: %d", out:size()))
-    return out
-end
+-- function DNA.collectBeveragesFrom(inv)
+--     local out = DNA.findBeveragesInInventory(inv)
+--     local p = getPlayer()
+--     if not p then print("[DNA] No player") return out end
+--     local sq = p:getSquare()
+--     if not sq then print("[DNA] No player square") return out end
+--     local cell = getCell()
+--     if not cell then print("[DNA] No cell") return out end
+--     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
+--     print(string.format("[DNA] Checking beverages in 3x3 around (%d,%d,%d)", x, y, z))
+--     for dx=-1,1 do
+--         for dy=-1,1 do
+--             local gs = cell:getGridSquare(x+dx, y+dy, z)
+--             if gs then
+--                 local wobs = gs:getWorldObjects()
+--                 if wobs then
+--                     for i=0,wobs:size()-1 do
+--                         local wo = wobs:get(i)
+--                         local item = wo and wo.getItem and wo:getItem() or nil
+--                         if item and DNA.isBeverage(item) then out:add(item) end
+--                         if wo and wo.getItems and wo:getItems() then
+--                             local stack = wo:getItems()
+--                             for k=0,stack:size()-1 do
+--                                 local it = stack:get(k)
+--                                 if it and DNA.isBeverage(it) then out:add(it) end
+--                             end
+--                         end
+--                     end
+--                 end
+--                 local objs = gs:getObjects()
+--                 if objs then
+--                     for i=0,objs:size()-1 do
+--                         local o = objs:get(i)
+--                         if o and o.getContainer and o:getContainer() then
+--                             local c = o:getContainer()
+--                             local items = c and c:getItems() or nil
+--                             if items then
+--                                 for k=0,items:size()-1 do
+--                                     local it = items:get(k)
+--                                     if it and DNA.isBeverage(it) then out:add(it) end
+--                                 end
+--                             end
+--                         end
+--                     end
+--                 end
+--             end
+--         end
+--     end
+--     print(string.format("[DNA] Total collected beverages: %d", out:size()))
+--     return out
+-- end
 
 function DNA.isWaterSource(it)
     local v = (it and it.isWaterSource and it:isWaterSource()) or (it and it.IsWaterSource and it:IsWaterSource())

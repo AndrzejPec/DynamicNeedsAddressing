@@ -106,74 +106,74 @@ local function _forEachContainer(o, fn)
     end
 end
 
-function DNA.collectEdiblesFrom(inv)
-    local out = ArrayList.new()
-    if inv and inv.getAllEvalRecurse then
-        inv:getAllEvalRecurse(function(it) return DNA.isEdible(it) end, out)
-    end
-    local p = getPlayer()
-    if not p then print("[DNA] No player") return out end
-    local sq = p:getSquare()
-    if not sq then print("[DNA] No player square") return out end
-    local cell = getCell()
-    if not cell then print("[DNA] No cell") return out end
-    local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    print(string.format("[DNA] Checking 3x3 squares around (%d,%d,%d)", x, y, z))
-    for dx = -1, 1 do
-        for dy = -1, 1 do
-            local gs = cell:getGridSquare(x + dx, y + dy, z)
-            if gs then
-                local wobs = gs:getWorldObjects()
-                if wobs then
-                    for i = 0, wobs:size() - 1 do
-                        local wo = wobs:get(i)
-                        local item = wo and wo.getItem and wo:getItem() or nil
-                        if item then
-                            print(string.format("[DNA] floor item: %s [%s]", item:getName(), item:getFullType()))
-                            if DNA.isEdible(item) then out:add(item) end
-                        end
-                        if wo and wo.getItems and wo:getItems() then
-                            local stack = wo:getItems()
-                            for k = 0, stack:size() - 1 do
-                                local it = stack:get(k)
-                                if it then
-                                    print(string.format("[DNA] floor stack: %s [%s]", it:getName(), it:getFullType()))
-                                    if DNA.isEdible(it) then out:add(it) end
-                                end
-                            end
-                        end
-                    end
-                end
-                local objs = gs:getObjects()
-                if objs then
-                    for i = 0, objs:size() - 1 do
-                        local o = objs:get(i)
-                        _forEachContainer(o, function(c)
-                            local items = c and c.getItems and c:getItems() or nil
-                            local cname = c and c.getType and c:getType() or "unknown"
-                            local count = items and items:size() or 0
-                            print(string.format("[DNA] container: %s at (%d,%d,%d) items=%d", tostring(cname), x+dx, y+dy, z, count))
-                            if items then
-                                for k = 0, items:size() - 1 do
-                                    local it = items:get(k)
-                                    if it then
-                                        print(string.format("    container item: %s [%s]", it:getName(), it:getFullType()))
-                                        if DNA.isEdible(it) then
-                                            print("    -> edible, adding")
-                                            out:add(it)
-                                        end
-                                    end
-                                end
-                            end
-                        end)
-                    end
-                end
-            end
-        end
-    end
-    print(string.format("[DNA] Total collected edibles: %d", out:size()))
-    return out
-end
+-- function DNA.collectEdiblesFrom(inv)
+--     local out = ArrayList.new()
+--     if inv and inv.getAllEvalRecurse then
+--         inv:getAllEvalRecurse(function(it) return DNA.isEdible(it) end, out)
+--     end
+--     local p = getPlayer()
+--     if not p then print("[DNA] No player") return out end
+--     local sq = p:getSquare()
+--     if not sq then print("[DNA] No player square") return out end
+--     local cell = getCell()
+--     if not cell then print("[DNA] No cell") return out end
+--     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
+--     print(string.format("[DNA] Checking 3x3 squares around (%d,%d,%d)", x, y, z))
+--     for dx = -1, 1 do
+--         for dy = -1, 1 do
+--             local gs = cell:getGridSquare(x + dx, y + dy, z)
+--             if gs then
+--                 local wobs = gs:getWorldObjects()
+--                 if wobs then
+--                     for i = 0, wobs:size() - 1 do
+--                         local wo = wobs:get(i)
+--                         local item = wo and wo.getItem and wo:getItem() or nil
+--                         if item then
+--                             print(string.format("[DNA] floor item: %s [%s]", item:getName(), item:getFullType()))
+--                             if DNA.isEdible(item) then out:add(item) end
+--                         end
+--                         if wo and wo.getItems and wo:getItems() then
+--                             local stack = wo:getItems()
+--                             for k = 0, stack:size() - 1 do
+--                                 local it = stack:get(k)
+--                                 if it then
+--                                     print(string.format("[DNA] floor stack: %s [%s]", it:getName(), it:getFullType()))
+--                                     if DNA.isEdible(it) then out:add(it) end
+--                                 end
+--                             end
+--                         end
+--                     end
+--                 end
+--                 local objs = gs:getObjects()
+--                 if objs then
+--                     for i = 0, objs:size() - 1 do
+--                         local o = objs:get(i)
+--                         _forEachContainer(o, function(c)
+--                             local items = c and c.getItems and c:getItems() or nil
+--                             local cname = c and c.getType and c:getType() or "unknown"
+--                             local count = items and items:size() or 0
+--                             print(string.format("[DNA] container: %s at (%d,%d,%d) items=%d", tostring(cname), x+dx, y+dy, z, count))
+--                             if items then
+--                                 for k = 0, items:size() - 1 do
+--                                     local it = items:get(k)
+--                                     if it then
+--                                         print(string.format("    container item: %s [%s]", it:getName(), it:getFullType()))
+--                                         if DNA.isEdible(it) then
+--                                             print("    -> edible, adding")
+--                                             out:add(it)
+--                                         end
+--                                     end
+--                                 end
+--                             end
+--                         end)
+--                     end
+--                 end
+--             end
+--         end
+--     end
+--     print(string.format("[DNA] Total collected edibles: %d", out:size()))
+--     return out
+-- end
 
 function DNA.eatItemPortion(item, portion)
     local p = getPlayer()
