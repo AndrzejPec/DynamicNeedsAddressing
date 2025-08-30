@@ -1,92 +1,97 @@
-function DNA.boolcall(obj, m)
-    if not obj or not m or not obj[m] then return nil end
-    local ok, v = pcall(function() return obj[m](obj) end)
-    if not ok then return nil end
-    if type(v) == "boolean" then return v end
-    return v
-end
+DNA = DNA or {}
 
-function _strcall(obj, m)
-    if not obj or not m or not obj[m] then return nil end
-    local ok, v = pcall(function() return obj[m](obj) end)
-    if ok and v and type(v) == "string" and v ~= "" then return v end
-    return nil
-end
+DNA.OpenRecipeKind = {
+    OpenCannedFood = "eat",
+    OpenCannedFood2 = "eat",
+    OpenCannedFoodWithKnifeOrSharpStoneFlake = "eat",
+    OpenBottleOfBeer = "drink",
+    OpenBottleOfChampagne = "drink",
+    OpenBottleOfWine = "drink",
+    OpenCanOfBeverage = "drink",
+}
 
-function _getReplaceOnUseOn(it)
-    return _strcall(it, "getReplaceOnUseOn") or _strcall(it, "getReplaceOnUse")
-end
+DNA._consumeQ = DNA._consumeQ or {first=1,last=0,data={}}
+function DNA._qpush(x) local q=DNA._consumeQ q.last=q.last+1 q.data[q.last]=x end
+function DNA._qpop() local q=DNA._consumeQ if q.first>q.last then return nil end local v=q.data[q.first] q.data[q.first]=nil q.first=q.first+1 return v end
+function DNA._qclear() local q=DNA._consumeQ q.first=1 q.last=0 q.data={} end
+function DNA._qempty() local q=DNA._consumeQ return q.first>q.last end
 
-function _isSealedByItem(it)
-    if not it then return false end
-    local sealed = DNA.boolcall(it, "isSealed")
-    if sealed ~= nil then return sealed and true or false end
-    local canOpen = DNA.boolcall(it, "canBeOpened")
-    local opened  = DNA.boolcall(it, "isOpened")
-    if canOpen == true and opened == false then return true end
-    return false
-end
-
-function _isSealedByFluid(it)
-    local fc = _tryGetFluidContainer(it)
-    if not fc then return false end
-    local sealed = DNA.boolcall(fc, "isSealed")
-    if sealed ~= nil then return sealed and true or false end
-    local canOpen = DNA.boolcall(fc, "canBeOpened") or DNA.boolcall(fc, "canOpen")
-    local opened  = DNA.boolcall(fc, "isOpened")
-    if canOpen == true and opened == false then return true end
-    return false
-end
-
-function _isSealed(it)
-    return _isSealedByItem(it) or _isSealedByFluid(it)
-end
-
-function _openItem(playerObj, it)
-    print("[DNA] Opening sealed item:", it:getFullType())
-    if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.onOpenItem then
-        return ISInventoryPaneContextMenu.onOpenItem(it, playerObj)
-    end
-    if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.onOpen then
-        return ISInventoryPaneContextMenu.onOpen(it, playerObj)
-    end
-    print("[DNA] No open handler found")
-end
-
-function _findOpenedAfterReplace(inv, it)
-    local rep = _getReplaceOnUseOn(it)
-    if rep then
-        local opened = inv:FindAndReturn(rep)
-        if opened then return opened end
-    end
-    local same = inv:FindAndReturn(it:getFullType())
-    if same and _isSealed(same) == false then return same end
-    return nil
-end
-
-function _afterOpenThenDrink(playerObj, originalItem, portion, triesMax)
-    local tries = 0
-    local id = {}
-    function tick()
-        tries = tries + 1
-        local inv = playerObj and playerObj:getInventory() or nil
-        if not inv then
-            print("[DNA] No inventory during open-wait")
-            Events.OnPlayerUpdate.Remove(tick)
-            return
-        end
-        local candidate = _findOpenedAfterReplace(inv, originalItem) or originalItem
-        if _isSealed(candidate) == false then
-            print("[DNA] Open complete, proceeding to drink")
-            local argItem = _itemForDrinkAction(candidate)
-            ISInventoryPaneContextMenu.onDrinkFluid(argItem, portion, playerObj)
-            Events.OnPlayerUpdate.Remove(tick)
-            return
-        end
-        if tries >= (triesMax or 180) then
-            print("[DNA] Open wait timed out")
-            Events.OnPlayerUpdate.Remove(tick)
+if not DNA.__Actions_addOrDropItem__ then
+    DNA.__Actions_addOrDropItem__ = Actions.addOrDropItem
+    function Actions.addOrDropItem(playerObj, item)
+        DNA.__Actions_addOrDropItem__(playerObj, item)
+        if not DNA._qempty() then
+            local percent = DNA._qpop()
+            ISInventoryPaneContextMenu.eatItem(item, percent, playerObj:getPlayerNum())
         end
     end
-    Events.OnPlayerUpdate.Add(tick)
+end
+
+if not DNA.__ISHandcraftAction_stop__ then
+    DNA.__ISHandcraftAction_stop__ = ISHandcraftAction.stop
+    function ISHandcraftAction:stop()
+        DNA.__ISHandcraftAction_stop__(self)
+        DNA._qclear()
+    end
+end
+
+local function _walkToContainerIfNeeded(item, player)
+    local playerInv = getPlayerInventory(player).inventory
+    local parent = item:getContainer()
+    if parent ~= playerInv then
+        if not luautils.walkToContainer(parent, player) then
+            return false
+        end
+    end
+    return true
+end
+
+function DNA.onOpenThenEat(item, func, recipe, player, all, percent)
+    if not _walkToContainerIfNeeded(item, player) then return end
+    DNA._qpush(percent or 1)
+    func(item, recipe, player, all)
+end
+
+function DNA.onOpenThenDrink(item, func, recipe, player, all, percent)
+    if not _walkToContainerIfNeeded(item, player) then return end
+    local playerObj = getSpecificPlayer(player)
+    func(item, recipe, player, all)
+    ISInventoryPaneContextMenu.transferIfNeeded(playerObj, item)
+    ISTimedActionQueue.add(ISDrinkFluidAction:new(playerObj, item:getWorldItem() or item, percent or 1))
+end
+
+function DNA._injectOpeners(player, context, items)
+    for i,v in ipairs(context.options) do
+        if instanceof(v.param1, "CraftRecipe") then
+            local item = v.target
+            local func = v.onSelect
+            local recipe = v.param1
+            local pnum = v.param2
+            local all = v.param3
+            local kind = DNA.OpenRecipeKind[recipe:getName()]
+            if kind == "eat" then
+                local opt = context:insertOptionAfter(v.name, "Open then Eat", item, nil)
+                opt.iconTexture = v.iconTexture
+                local sub = ISContextMenu:getNew(context)
+                context:addSubMenu(opt, sub)
+                sub:addOption("Eat all", item, DNA.onOpenThenEat, func, recipe, pnum, all, 1.0)
+                sub:addOption("Eat half", item, DNA.onOpenThenEat, func, recipe, pnum, all, 0.5)
+                sub:addOption("Eat quarter", item, DNA.onOpenThenEat, func, recipe, pnum, all, 0.25)
+            elseif kind == "drink" then
+                local opt = context:insertOptionAfter(v.name, "Open then Drink", item, nil)
+                opt.iconTexture = v.iconTexture
+                local sub = ISContextMenu:getNew(context)
+                context:addSubMenu(opt, sub)
+                sub:addOption("Drink all", item, DNA.onOpenThenDrink, func, recipe, pnum, all, 1.0)
+                sub:addOption("Drink half", item, DNA.onOpenThenDrink, func, recipe, pnum, all, 0.5)
+                sub:addOption("Drink quarter", item, DNA.onOpenThenDrink, func, recipe, pnum, all, 0.25)
+            end
+        end
+    end
+end
+
+if not DNA.__OpenersHooked__ then
+    Events.OnFillInventoryObjectContextMenu.Add(DNA._injectOpeners)
+    DNA.__OpenersHooked__ = true
+    print("[DNA] Openers injected")
 end

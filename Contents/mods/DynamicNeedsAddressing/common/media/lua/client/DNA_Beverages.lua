@@ -1,6 +1,6 @@
 DNA = DNA or {}
 
-local function _tryGetFluidContainer(it)
+function _tryGetFluidContainer(it)
     if not it then return nil end
     local ok,res = pcall(function() return it.getFluidContainerFromSelfOrWorldItem and it:getFluidContainerFromSelfOrWorldItem() end)
     if ok and res then return res end
@@ -61,7 +61,6 @@ function DNA.isBeverageForNeed(it, needKey)
     local pts = DNA.needPoints and DNA.needPoints(it) or nil
     local h = pts and (pts.hunger or 0) or 0
     local t = pts and (pts.thirst or 0) or 0
-
     if needKey == "hunger" then
         if h > 0 then return true end
         local fc = _tryGetFluidContainer(it)
@@ -78,7 +77,6 @@ function DNA.isBeverageForNeed(it, needKey)
         end
         return false
     end
-
     if needKey == "thirst" then
         if t > 0 then return true end
         local fc = _tryGetFluidContainer(it)
@@ -91,7 +89,6 @@ function DNA.isBeverageForNeed(it, needKey)
         end
         return false
     end
-
     local v = pts and (pts[needKey] or 0) or 0
     return v > 0
 end
@@ -118,7 +115,6 @@ function DNA.drinkItemPortion(item, portion)
     local p = getPlayer()
     if not p or not item or not portion then print("[DNA] missing player/item/portion"); return end
     print("[DNA] drinkItemPortion START", item:getFullType(), "portion=", tostring(portion))
-
     if portion == "satiety" then
         local hunger = p:getStats() and p:getStats():getHunger() or 0
         print("[DNA] current hunger=", tostring(hunger))
@@ -132,16 +128,12 @@ function DNA.drinkItemPortion(item, portion)
         print("[DNA] computed portion=", tostring(portion))
         if portion <= 0 then print("[DNA] Already satiated"); return end
     end
-
     local fc = _tryGetFluidContainer(item)
     print("[DNA] final fc=", tostring(fc))
     if fc then
-        local argItem = _itemForDrinkAction(item)
-        print("[DNA] calling onDrinkFluid with portion=", tostring(portion), "argItem=", tostring(argItem))
-        ISInventoryPaneContextMenu.onDrinkFluid(argItem, portion, p)
+        ISInventoryPaneContextMenu.onDrinkFluid(item, portion, p)
         return
     end
-
     print("[DNA] calling eatItemPortion with portion=", tostring(portion))
     DNA.eatItemPortion(item, portion)
 end
@@ -167,8 +159,6 @@ function DNA.addDrinkPortionSubmenu(context, parentMenu, group, needKey)
     local tex = (first.getTex and first:getTex()) or (first.getTexture and first:getTexture()) or nil
     if tex then opt.iconTexture = tex; opt.texture = tex end
 end
-
---- DEBUG ---
 
 function Debug_printBeverages()
     local p = getPlayer()
@@ -219,25 +209,20 @@ function Debug_ProbeFluid(fullType)
     local it = inv and inv:FindAndReturn(fullType) or nil
     if not it then print("[DNA] Item not found: ".._str(fullType)) return end
     print(string.format("[DNA] Probe item: %s [%s]", it:getName(), it:getFullType()))
-
     local fc = _tryGetFluidContainer(it)
     if not fc then
         print("[DNA] No FluidContainer")
         return
     end
     print("[DNA] FluidContainer present = true")
-
     local cap = _first_non_nil(_safe_call(it,"getFluidContainerCapacity"), _safe_call(fc,"getCapacity"))
     local amt = _first_non_nil(_safe_call(fc,"getPrimaryFluidAmount"), _safe_call(fc,"getAmount"))
     local rem = _safe_call(fc,"getRemaining")
     local pct = _safe_call(fc,"getPercent")
     local empty = _safe_call(fc,"isEmpty")
-    print(string.format("[DNA] capacity=%s amount=%s remaining=%s percent=%s empty=%s",
-        _str(cap), _str(amt), _str(rem), _str(pct), _str(empty)))
-
+    print(string.format("[DNA] capacity=%s amount=%s remaining=%s percent=%s empty=%s", _str(cap), _str(amt), _str(rem), _str(pct), _str(empty)))
     local ftype = _first_non_nil(_safe_call(fc,"getFluidFullType"), _safe_call(fc,"getFluidType"), _safe_call(fc,"getFluid"))
     print("[DNA] fluid-type=".._str(ftype))
-
     local contentItem = _first_non_nil(_safe_call(fc,"getContentItem"), _safe_call(fc,"getItem"))
     if contentItem then
         print(string.format("[DNA] content item: %s [%s]", _safe_call(contentItem,"getName") or "?", _safe_call(contentItem,"getFullType") or "?"))
